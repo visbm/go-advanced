@@ -9,48 +9,92 @@ import (
 
 // go test -v homework_test.go
 
-type CircularQueue struct {
-	values []int
-	// need to implement
+type integers interface {
+	~int8 | ~int16 | ~int32 | ~int64 | ~int
 }
 
-func NewCircularQueue(size int) CircularQueue {
-	return CircularQueue{} // need to implement
+type CircularQueue[T integers] struct {
+	values []T
+	size   int
+	len    int
+	first  int
+	last   int
 }
 
-func (q *CircularQueue) Push(value int) bool {
-	return false // need to implement
+func NewCircularQueue[T integers](size int) CircularQueue[T] {
+	return CircularQueue[T]{
+		values: make([]T, size),
+		size:   size,
+		len:    0,
+		first:  0,
+		last:   0,
+	}
 }
 
-func (q *CircularQueue) Pop() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Push(value T) bool {
+	if q.Full() {
+		return false
+	}
+
+	q.values[q.last] = value
+	q.len++
+	if q.last == q.size-1 {
+		q.last = 0
+	} else {
+		q.last++
+	}
+
+	return true
 }
 
-func (q *CircularQueue) Front() int {
-	return -1 // need to implement
+func (q *CircularQueue[T]) Pop() bool {
+	if q.Empty() {
+		return false
+	}
+
+	q.len--
+	q.first++
+
+	return true
 }
 
-func (q *CircularQueue) Back() int {
-	return -1 // need to implement
+func (q *CircularQueue[T]) Front() T {
+	if q.Empty() {
+		return -1
+	}
+
+	return q.values[q.first]
 }
 
-func (q *CircularQueue) Empty() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Back() T {
+	if q.Empty() {
+		return -1
+	}
+
+	if q.last == 0 {
+		return q.values[q.size-1]
+	}
+
+	return q.values[q.last-1]
 }
 
-func (q *CircularQueue) Full() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Empty() bool {
+	return q.len == 0
+}
+
+func (q *CircularQueue[T]) Full() bool {
+	return q.len == q.size
 }
 
 func TestCircularQueue(t *testing.T) {
 	const queueSize = 3
-	queue := NewCircularQueue(queueSize)
+	queue := NewCircularQueue[int64](queueSize)
 
 	assert.True(t, queue.Empty())
 	assert.False(t, queue.Full())
 
-	assert.Equal(t, -1, queue.Front())
-	assert.Equal(t, -1, queue.Back())
+	assert.Equal(t, int64(-1), queue.Front())
+	assert.Equal(t, int64(-1), queue.Back())
 	assert.False(t, queue.Pop())
 
 	assert.True(t, queue.Push(1))
@@ -58,23 +102,23 @@ func TestCircularQueue(t *testing.T) {
 	assert.True(t, queue.Push(3))
 	assert.False(t, queue.Push(4))
 
-	assert.True(t, reflect.DeepEqual([]int{1, 2, 3}, queue.values))
+	assert.True(t, reflect.DeepEqual([]int64{1, 2, 3}, queue.values))
 
 	assert.False(t, queue.Empty())
 	assert.True(t, queue.Full())
 
-	assert.Equal(t, 1, queue.Front())
-	assert.Equal(t, 3, queue.Back())
+	assert.Equal(t, int64(1), queue.Front())
+	assert.Equal(t, int64(3), queue.Back())
 
 	assert.True(t, queue.Pop())
 	assert.False(t, queue.Empty())
 	assert.False(t, queue.Full())
-	assert.True(t, queue.Push(4))
+	assert.True(t, queue.Push(int64(4)))
 
-	assert.True(t, reflect.DeepEqual([]int{4, 2, 3}, queue.values))
+	assert.True(t, reflect.DeepEqual([]int64{4, 2, 3}, queue.values))
 
-	assert.Equal(t, 2, queue.Front())
-	assert.Equal(t, 4, queue.Back())
+	assert.Equal(t, int64(2), queue.Front())
+	assert.Equal(t, int64(4), queue.Back())
 
 	assert.True(t, queue.Pop())
 	assert.True(t, queue.Pop())
