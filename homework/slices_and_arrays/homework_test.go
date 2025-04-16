@@ -16,7 +16,6 @@ type integers interface {
 type CircularQueue[T integers] struct {
 	values []T
 	size   int
-	len    int
 	first  int
 	last   int
 }
@@ -24,10 +23,6 @@ type CircularQueue[T integers] struct {
 func NewCircularQueue[T integers](size int) CircularQueue[T] {
 	return CircularQueue[T]{
 		values: make([]T, size),
-		size:   size,
-		len:    0,
-		first:  0,
-		last:   0,
 	}
 }
 
@@ -37,12 +32,8 @@ func (q *CircularQueue[T]) Push(value T) bool {
 	}
 
 	q.values[q.last] = value
-	q.len++
-	if q.last == q.size-1 {
-		q.last = 0
-	} else {
-		q.last++
-	}
+	q.size++
+	q.last = (q.last + 1) % cap(q.values)
 
 	return true
 }
@@ -52,9 +43,8 @@ func (q *CircularQueue[T]) Pop() bool {
 		return false
 	}
 
-	q.len--
+	q.size--
 	q.first++
-
 	return true
 }
 
@@ -70,20 +60,16 @@ func (q *CircularQueue[T]) Back() T {
 	if q.Empty() {
 		return -1
 	}
-
-	if q.last == 0 {
-		return q.values[q.size-1]
-	}
-
-	return q.values[q.last-1]
+	index := (q.last - 1 + q.size) % q.size
+	return q.values[index]
 }
 
 func (q *CircularQueue[T]) Empty() bool {
-	return q.len == 0
+	return q.size == 0
 }
 
 func (q *CircularQueue[T]) Full() bool {
-	return q.len == q.size
+	return q.size == cap(q.values)
 }
 
 func TestCircularQueue(t *testing.T) {
