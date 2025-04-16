@@ -19,6 +19,10 @@ func NewCOWBuffer(data []byte) COWBuffer {
 		refs: new(int),
 	}
 }
+func NewCOWBufferWithFinalizer(data []byte) (COWBuffer, func()) {
+	b := NewCOWBuffer(data)
+	return b, func() { b.Close() }
+}
 
 func (b *COWBuffer) Clone() COWBuffer {
 	*b.refs++
@@ -62,6 +66,9 @@ func TestCOWBuffer(t *testing.T) {
 	data := []byte{'a', 'b', 'c', 'd'}
 	buffer := NewCOWBuffer(data)
 	defer buffer.Close()
+
+	buffer, finalizer := NewCOWBufferWithFinalizer(data)
+	defer finalizer()
 
 	copy1 := buffer.Clone()
 	copy2 := buffer.Clone()
