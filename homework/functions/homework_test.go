@@ -7,19 +7,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Map(data []int, action func(int) int) []int {
-	// need to implement
-	return nil
+func Map[T any](data []T, action func(T) T) []T {
+	if data == nil {
+		return nil
+	}
+
+	newData := make([]T, len(data))
+	for i := range data {
+		newData[i] = action(data[i])
+	}
+	return newData
 }
 
-func Filter(data []int, action func(int) bool) []int {
-	// need to implement
-	return nil
+func Filter[T any](data []T, action func(T) bool) []T {
+	if data == nil {
+		return nil
+	}
+
+	newData := make([]T, 0, len(data))
+	for _, number := range data {
+		if action(number) {
+			newData = append(newData, number)
+		}
+	}
+	return newData
 }
 
-func Reduce(data []int, initial int, action func(int, int) int) int {
-	// need to implement
-	return 0
+func Reduce[T any](data []T, initial T, action func(T, T) T) T {
+	var res T
+	res = action(res, initial)
+	for _, number := range data {
+		res = action(res, number)
+	}
+	return res
 }
 
 func TestMap(t *testing.T) {
@@ -58,7 +78,7 @@ func TestMap(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := Map(test.data, test.action)
+			result := Map[int](test.data, test.action)
 			assert.True(t, reflect.DeepEqual(test.result, result))
 		})
 	}
@@ -100,7 +120,7 @@ func TestFilter(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := Filter(test.data, test.action)
+			result := Filter[int](test.data, test.action)
 			assert.True(t, reflect.DeepEqual(test.result, result))
 		})
 	}
@@ -143,7 +163,7 @@ func TestReduce(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := Reduce(test.data, test.initial, test.action)
+			result := Reduce[int](test.data, test.initial, test.action)
 			assert.Equal(t, test.result, result)
 		})
 	}
