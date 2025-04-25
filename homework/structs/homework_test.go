@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
+	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -333,4 +338,104 @@ func TestGamePerson(t *testing.T) {
 
 	b, _ := json.Marshal(&person)
 	fmt.Println(string(b))
+
+	b2, _ := MarshalJSON(getDTO(person))
+	fmt.Println(string(b2))
+}
+
+func MarshalJSON(v interface{}) ([]byte, error) {
+	val := reflect.ValueOf(v)
+	typ := reflect.TypeOf(v)
+
+	b := bytes.Buffer{}
+	b.Write([]byte("{"))
+
+	if val.Kind() != reflect.Struct {
+		return nil, errors.New("not a struct")
+	}
+
+	for i := range val.NumField() {
+		fieldVal := val.Field(i)
+		fieldType := typ.Field(i)
+
+		tag := fieldType.Tag.Get("json")
+		if tag == "" {
+			continue
+		}
+		jsonValue := encodeJSONValue(fieldVal)
+		if i == val.NumField()-1 {
+			b.Write([]byte(`"` + tag + `":` + jsonValue))
+			break
+		}
+
+		if i == val.NumField() {
+			b.Write([]byte(`"` + tag + `":` + jsonValue + `,`))
+			break
+		}
+		b.Write([]byte(`"` + tag + `":` + jsonValue + `,`))
+
+	}
+
+	b.Write([]byte("}"))
+	return b.Bytes(), nil
+
+}
+
+func encodeJSONValue(v reflect.Value) string {
+	switch v.Kind() {
+	case reflect.String:
+		return `"` + v.String() + `"`
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(v.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(v.Uint(), 10)
+	case reflect.Bool:
+		if v.Bool() {
+			return "true"
+		}
+		return "false"
+	case reflect.Slice:
+		var parts []string
+		for i := 0; i < v.Len(); i++ {
+			parts = append(parts, encodeJSONValue(v.Index(i)))
+		}
+		return "[" + strings.Join(parts, ",") + "]"
+	case reflect.Map:
+		var parts []string
+		for _, key := range v.MapKeys() {
+			val := v.MapIndex(key)
+			parts = append(parts, fmt.Sprintf(`"%v":%s`, key, encodeJSONValue(val)))
+		}
+		return "{" + strings.Join(parts, ",") + "}"
+	case reflect.Struct:
+		j, _ := MarshalJSON(v.Interface())
+		return string(j)
+	case reflect.Ptr:
+		if v.IsNil() {
+			return "null"
+		}
+		return encodeJSONValue(v.Elem())
+	default:
+		return "null"
+	}
+}
+
+func getDTO(p GamePerson) dtoGamePerson {
+	return dtoGamePerson{
+		Name:       p.Name(),
+		X:          p.X(),
+		Y:          p.Y(),
+		Z:          p.Z(),
+		Gold:       p.Gold(),
+		Mana:       p.Mana(),
+		Health:     p.Health(),
+		Respect:    p.Respect(),
+		Strength:   p.Strength(),
+		Experience: p.Experience(),
+		Level:      p.Level(),
+		HasHouse:   p.HasHouse(),
+		HasGun:     p.HasGun(),
+		HasFamily:  p.HasFamilty(),
+		Type:       p.Type(),
+	}
 }
