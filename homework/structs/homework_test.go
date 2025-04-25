@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
 	"testing"
 	"unsafe"
@@ -8,83 +10,159 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func getBits(data [10]byte, offset, bits int) uint64 {
+	var val uint64
+	byteOffset := offset / 8
+	bitOffset := offset % 8
+	totalBits := bitOffset + bits
+	byteCount := (totalBits + 7) / 8
+
+	for i := 0; i < byteCount; i++ {
+		val |= uint64(data[byteOffset+i]) << (8 * i)
+	}
+
+	val >>= bitOffset
+	mask := uint64((1 << bits) - 1)
+	return val & mask
+}
+
+func setBits(data *[10]byte, offset, bits int, value uint64) {
+	byteOffset := offset / 8
+	bitOffset := offset % 8
+	totalBits := bitOffset + bits
+	byteCount := (totalBits + 7) / 8
+
+	var val uint64 = 0
+	for i := 0; i < byteCount; i++ {
+		val |= uint64(data[byteOffset+i]) << (8 * i)
+	}
+
+	mask := ((uint64(1) << bits) - 1) << bitOffset
+	val = (val &^ mask) | ((value << bitOffset) & mask)
+
+	for i := 0; i < byteCount; i++ {
+		data[byteOffset+i] = byte((val >> (8 * i)) & 0xFF)
+	}
+}
+
 type Option func(*GamePerson)
 
 func WithName(name string) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		nameBytes := [42]byte{}
+		for i := 0; i < len(name); i++ {
+			nameBytes[i] = name[i]
+		}
+		person.name = nameBytes
 	}
 }
 
 func WithCoordinates(x, y, z int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.x = int32(x)
+		person.y = int32(y)
+		person.z = int32(z)
 	}
 }
 
+const (
+	goldOffset = 0
+	goldBits   = 31
+
+	manaOffset = 31
+	manaBits   = 10
+
+	healthOffset = 41
+	healthBits   = 10
+
+	respectOffset = 51
+	respectBits   = 4
+
+	strengthOffset = 55
+	strengthBits   = 4
+
+	experienceOffset = 59
+	experienceBits   = 4
+
+	levelOffset = 63
+	levelBits   = 4
+
+	withHouseOffset = 67
+	withHouseBits   = 1
+
+	withGunOffset = 68
+	withGunBits   = 1
+
+	withFamilyOffset = 69
+	withFamilyBits   = 1
+
+	personTypeOffset = 70
+	personTypeBits   = 3
+)
+
 func WithGold(gold int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, goldOffset, goldBits, uint64(gold))
 	}
 }
 
 func WithMana(mana int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, manaOffset, manaBits, uint64(mana))
 	}
 }
 
 func WithHealth(health int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, healthOffset, healthBits, uint64(health))
 	}
 }
 
 func WithRespect(respect int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, respectOffset, respectBits, uint64(respect))
 	}
 }
 
 func WithStrength(strength int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, strengthOffset, strengthBits, uint64(strength))
 	}
 }
 
 func WithExperience(experience int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, experienceOffset, experienceBits, uint64(experience))
 	}
 }
 
 func WithLevel(level int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, levelOffset, levelBits, uint64(level))
 	}
 }
 
 func WithHouse() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, withHouseOffset, withHouseBits, uint64(1))
 	}
 }
 
 func WithGun() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, withGunOffset, withGunBits, uint64(1))
 	}
 }
 
 func WithFamily() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, withFamilyOffset, withFamilyBits, uint64(1))
 	}
 }
 
 func WithType(personType int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		setBits(&person.attributes, personTypeOffset, personTypeBits, uint64(personType))
 	}
 }
 
@@ -95,92 +173,121 @@ const (
 )
 
 type GamePerson struct {
-	// need to implement
+	x, y, z    int32
+	attributes [10]byte
+	name       [42]byte
+}
+
+type dtoGamePerson struct {
+	Name       string `json:"name"`
+	X          int    `json:"x"`
+	Y          int    `json:"y"`
+	Z          int    `json:"z"`
+	Gold       int    `json:"gold"`
+	Mana       int    `json:"mana"`
+	Health     int    `json:"health"`
+	Respect    int    `json:"respect"`
+	Strength   int    `json:"strength"`
+	Experience int    `json:"experience"`
+	Level      int    `json:"level"`
+	HasHouse   bool   `json:"has_house"`
+	HasGun     bool   `json:"has_gun"`
+	HasFamily  bool   `json:"has_family"`
+	Type       int    `json:"type"`
+}
+
+func (p *GamePerson) MarshalJSON() ([]byte, error) {
+	dto := dtoGamePerson{
+		Name:       p.Name(),
+		X:          p.X(),
+		Y:          p.Y(),
+		Z:          p.Z(),
+		Gold:       p.Gold(),
+		Mana:       p.Mana(),
+		Health:     p.Health(),
+		Respect:    p.Respect(),
+		Strength:   p.Strength(),
+		Experience: p.Experience(),
+		Level:      p.Level(),
+		HasHouse:   p.HasHouse(),
+		HasGun:     p.HasGun(),
+		HasFamily:  p.HasFamilty(),
+		Type:       p.Type(),
+	}
+	return json.Marshal(dto)
 }
 
 func NewGamePerson(options ...Option) GamePerson {
-	// need to implement
-	return GamePerson{}
+	person := &GamePerson{}
+
+	for _, opt := range options {
+		opt(person)
+	}
+	return *person
 }
 
 func (p *GamePerson) Name() string {
-	// need to implement
-	return ""
+	return string(p.name[:])
 }
 
 func (p *GamePerson) X() int {
-	// need to implement
-	return 0
+	return int(p.x)
 }
 
 func (p *GamePerson) Y() int {
-	// need to implement
-	return 0
+	return int(p.y)
 }
 
 func (p *GamePerson) Z() int {
-	// need to implement
-	return 0
+	return int(p.z)
 }
 
 func (p *GamePerson) Gold() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, goldOffset, goldBits))
 }
 
 func (p *GamePerson) Mana() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, manaOffset, manaBits))
 }
 
 func (p *GamePerson) Health() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, healthOffset, healthBits))
 }
 
 func (p *GamePerson) Respect() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, respectOffset, respectBits))
 }
 
 func (p *GamePerson) Strength() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, strengthOffset, strengthBits))
 }
 
 func (p *GamePerson) Experience() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, experienceOffset, experienceBits))
 }
 
 func (p *GamePerson) Level() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, levelOffset, levelBits))
 }
 
 func (p *GamePerson) HasHouse() bool {
-	// need to implement
-	return false
+	return int(getBits(p.attributes, withHouseOffset, withHouseBits)) == 1
 }
 
 func (p *GamePerson) HasGun() bool {
-	// need to implement
-	return false
+	return int(getBits(p.attributes, withGunOffset, withGunBits)) == 1
 }
 
 func (p *GamePerson) HasFamilty() bool {
-	// need to implement
-	return false
+	return int(getBits(p.attributes, withFamilyOffset, withFamilyBits)) == 1
 }
 
 func (p *GamePerson) Type() int {
-	// need to implement
-	return 0
+	return int(getBits(p.attributes, personTypeOffset, personTypeBits))
 }
 
 func TestGamePerson(t *testing.T) {
 	assert.LessOrEqual(t, unsafe.Sizeof(GamePerson{}), uintptr(64))
-
 	const x, y, z = math.MinInt32, math.MaxInt32, 0
 	const name = "aaaaaaaaaaaaa_bbbbbbbbbbbbb_cccccccccccccc"
 	const personType = BuilderGamePersonType
@@ -223,4 +330,7 @@ func TestGamePerson(t *testing.T) {
 	assert.True(t, person.HasFamilty())
 	assert.False(t, person.HasGun())
 	assert.Equal(t, personType, person.Type())
+
+	b, _ := json.Marshal(&person)
+	fmt.Println(string(b))
 }
