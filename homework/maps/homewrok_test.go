@@ -49,33 +49,24 @@ func (n *node[K, V]) insert(key K, value V) bool {
 		return false
 	}
 
+	var child **node[K, V]
 	if key < n.key {
-		if n.left == nil {
-			n.left = &node[K, V]{
-				key: key,
-				val: value,
-			}
-			return true
-		} else {
-			return n.left.insert(key, value)
-
-		}
-
+		child = &n.left
+	} else if key > n.key {
+		child = &n.right
+	} else {
+		return false
 	}
 
-	if key > n.key {
-		if n.right == nil {
-			n.right = &node[K, V]{
-				key: key,
-				val: value,
-			}
-			return true
-		} else {
-			return n.right.insert(key, value)
+	if *child == nil {
+		*child = &node[K, V]{
+			key: key,
+			val: value,
 		}
-
+		return true
 	}
-	return false
+
+	return (*child).insert(key, value)
 }
 
 func (m *OrderedMap[K, V]) Erase(key K) {
