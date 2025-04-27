@@ -14,9 +14,10 @@ type COWBuffer struct {
 }
 
 func NewCOWBuffer(data []byte) COWBuffer {
+	refs := 1
 	return COWBuffer{
 		data: data,
-		refs: new(int),
+		refs: &refs,
 	}
 }
 func NewCOWBufferWithFinalizer(data []byte) (COWBuffer, func()) {
@@ -33,7 +34,7 @@ func (b *COWBuffer) Clone() COWBuffer {
 }
 
 func (b *COWBuffer) Close() {
-	if b.refs != nil && *b.refs > 0 {
+	if b.refs != nil && *b.refs > 1 {
 		*b.refs--
 	}
 	b.data = nil
@@ -44,7 +45,7 @@ func (b *COWBuffer) Update(index int, value byte) bool {
 	if index >= len(b.data) || index < 0 {
 		return false
 	}
-	if *b.refs == 0 {
+	if *b.refs == 1 {
 		b.data[index] = value
 		return true
 	}
