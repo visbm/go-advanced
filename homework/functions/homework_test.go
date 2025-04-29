@@ -8,7 +8,7 @@ import (
 )
 
 func Map[T any](data []T, action func(T) T) []T {
-	if data == nil {
+	if len(data) == 0 {
 		return nil
 	}
 
@@ -20,7 +20,7 @@ func Map[T any](data []T, action func(T) T) []T {
 }
 
 func Filter[T any](data []T, action func(T) bool) []T {
-	if data == nil {
+	if len(data) == 0 {
 		return nil
 	}
 
