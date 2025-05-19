@@ -178,7 +178,19 @@ const (
 )
 
 type GamePerson struct {
-	x, y, z    int32
+	x, y, z int32 // coordinates
+	// attributes — bitовое поле длиной 80 bit (10 байт), содержащее характеристики персонажа:
+	// - gold          [0–30]   (31 bits)
+	// - mana          [31–40]  (10 bits)
+	// - health        [41–50]  (10 bits)
+	// - respect       [51–54]  (4 bits)
+	// - strength      [55–58]  (4 bits)
+	// - experience    [59–62]  (4 bits)
+	// - level         [63–66]  (4 bits)
+	// - withHouse     [67]     (1 bit)
+	// - withGun       [68]     (1 bit)
+	// - withFamily    [69]     (1 bit)
+	// - personType    [70–72]  (3 bits)
 	attributes [10]byte
 	name       [42]byte
 }
