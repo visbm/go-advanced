@@ -11,11 +11,48 @@ import (
 // go test -v homework_test.go
 
 func Trace(stacks [][]uintptr) []uintptr {
-	// need to implement
-	return nil
+	var result []uintptr
+	visited := map[uintptr]struct{}{}
+	for _, stack := range stacks {
+		r := trace(stack, visited)
+		result = append(result, r...)
+	}
+
+	return result
+}
+
+func trace(stack []uintptr, visited map[uintptr]struct{}) []uintptr {
+	var result []uintptr
+
+	for _, pc := range stack {
+		result = append(result, unpack(pc, visited)...)
+	}
+	return result
+}
+
+func unpack(ptr uintptr, visited map[uintptr]struct{}) []uintptr {
+	if ptr == 0 {
+		return nil
+	}
+
+	if _, ok := visited[ptr]; ok {
+		return nil
+	}
+
+	visited[ptr] = struct{}{}
+	result := []uintptr{ptr}
+
+	v := *(*uintptr)(unsafe.Pointer(ptr))
+	if v == 0 {
+		return result
+	}
+	result = append(result, unpack(v, visited)...)
+
+	return result
 }
 
 func TestTrace(t *testing.T) {
+
 	var heapObjects = []int{
 		0x00, 0x00, 0x00, 0x00, 0x00,
 	}
@@ -49,14 +86,13 @@ func TestTrace(t *testing.T) {
 	pointers := Trace(stacks)
 	expectedPointers := []uintptr{
 		uintptr(unsafe.Pointer(&heapPointer1)),
+		uintptr(unsafe.Pointer(&heapObjects[1])),
 		uintptr(unsafe.Pointer(&heapObjects[0])),
 		uintptr(unsafe.Pointer(&heapPointer2)),
-		uintptr(unsafe.Pointer(&heapObjects[1])),
 		uintptr(unsafe.Pointer(&heapObjects[2])),
 		uintptr(unsafe.Pointer(&heapPointer4)),
 		uintptr(unsafe.Pointer(&heapPointer3)),
 		uintptr(unsafe.Pointer(&heapObjects[3])),
 	}
-
 	assert.True(t, reflect.DeepEqual(expectedPointers, pointers))
 }
