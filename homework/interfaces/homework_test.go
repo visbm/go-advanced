@@ -29,6 +29,10 @@ func NewContainer() *Container {
 }
 
 func (c *Container) RegisterType(name string, constructor interface{}) {
+	_, ok := constructor.(func() interface{})
+	if !ok {
+		return
+	}
 	c.deps[name] = constructor
 }
 
@@ -37,11 +41,7 @@ func (c *Container) Resolve(name string) (interface{}, error) {
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	i, ok := constructor.(func() interface{})
-	if !ok {
-		return nil, errors.New("not a function")
-	}
-	return i(), nil
+	return constructor.(func() interface{})(), nil
 }
 
 func TestDIContainer(t *testing.T) {
