@@ -13,20 +13,13 @@ import (
 func Trace(stacks [][]uintptr) []uintptr {
 	var result []uintptr
 	visited := map[uintptr]struct{}{}
+
 	for _, stack := range stacks {
-		r := trace(stack, visited)
-		result = append(result, r...)
+		for _, pc := range stack {
+			result = append(result, unpack(pc, visited)...)
+		}
 	}
 
-	return result
-}
-
-func trace(stack []uintptr, visited map[uintptr]struct{}) []uintptr {
-	var result []uintptr
-
-	for _, pc := range stack {
-		result = append(result, unpack(pc, visited)...)
-	}
 	return result
 }
 
