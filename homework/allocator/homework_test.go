@@ -15,12 +15,12 @@ func Defragment(memory []byte, pointers []unsafe.Pointer) {
 		panic("len(pointers) > len(memory)")
 	}
 
-	for i, p := range pointers {
-		v := *(*byte)(p)
-		vPtr := (*byte)(p)
-		*vPtr = 0
+	for i, unsafePtr := range pointers {
+		value := *(*byte)(unsafePtr)
+		pointer := (*byte)(unsafePtr)
+		*pointer = 0
 
-		memory[i] = v
+		memory[i] = value
 		pointers[i] = unsafe.Pointer(&memory[i])
 	}
 
