@@ -15,10 +15,6 @@ type Scheduler struct {
 	heap Heap
 }
 
-type Heap struct {
-	tasks []Task
-}
-
 func NewScheduler() Scheduler {
 	return Scheduler{
 		heap: Heap{tasks: make([]Task, 0)},
@@ -26,8 +22,47 @@ func NewScheduler() Scheduler {
 }
 
 func (s *Scheduler) AddTask(task Task) {
-	s.heap.tasks = append(s.heap.tasks, task)
-	s.heap.shiftUp(len(s.heap.tasks) - 1)
+	s.heap.AddTask(task)
+}
+
+func (s *Scheduler) ChangeTaskPriority(taskID int, newPriority int) {
+	s.heap.ChangeTaskPriority(taskID, newPriority)
+}
+
+func (s *Scheduler) GetTask() Task {
+	return s.heap.GetTask()
+}
+
+type Heap struct {
+	tasks []Task
+}
+
+func (s *Heap) AddTask(task Task) {
+	s.tasks = append(s.tasks, task)
+	s.shiftUp(len(s.tasks) - 1)
+}
+
+func (s *Heap) GetTask() Task {
+	t := s.tasks[0]
+	s.tasks = s.tasks[1:]
+	s.shiftDown(0)
+	return t
+}
+
+func (s *Heap) ChangeTaskPriority(taskID int, newPriority int) {
+	index := s.findTask(taskID)
+	if index == -1 {
+		return
+	}
+	oldPriority := s.tasks[index].Priority
+	s.tasks[index].Priority = newPriority
+
+	if newPriority > oldPriority {
+		s.shiftUp(index)
+	} else if newPriority < oldPriority {
+		s.shiftDown(index)
+	}
+
 }
 
 func (s *Heap) shiftUp(index int) {
@@ -77,22 +112,6 @@ func (s *Heap) shiftDown(index int) {
 
 }
 
-func (s *Scheduler) ChangeTaskPriority(taskID int, newPriority int) {
-	index := s.heap.findTask(taskID)
-	if index == -1 {
-		return
-	}
-	oldPriority := s.heap.tasks[index].Priority
-	s.heap.tasks[index].Priority = newPriority
-
-	if newPriority > oldPriority {
-		s.heap.shiftUp(index)
-	} else if newPriority < oldPriority {
-		s.heap.shiftDown(index)
-	}
-
-}
-
 func (s *Heap) findTask(taskID int) int {
 	for i := range s.tasks {
 		if s.tasks[i].Identifier == taskID {
@@ -101,13 +120,6 @@ func (s *Heap) findTask(taskID int) int {
 	}
 
 	return -1
-}
-
-func (s *Scheduler) GetTask() Task {
-	t := s.heap.tasks[0]
-	s.heap.tasks = s.heap.tasks[1:]
-	s.heap.shiftDown(0)
-	return t
 }
 
 func (s *Heap) left(index int) int {
