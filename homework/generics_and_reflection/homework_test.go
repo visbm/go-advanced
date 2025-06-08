@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -35,9 +36,10 @@ func Serialize(person Person) string {
 
 		tags := strings.Split(tag, ",")
 		if len(tags) >= 2 {
-			if tags[1] == "omitempty" && v.IsZero() {
+			if slices.Contains(tags, "omitempty") && v.IsZero() {
 				continue
 			}
+
 		}
 		if i == vt.NumField()-1 {
 			s += fmt.Sprint(tags[0], "=", v)
