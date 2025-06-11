@@ -12,25 +12,145 @@ type Task struct {
 }
 
 type Scheduler struct {
-	// need to implement
+	heap Heap
 }
 
 func NewScheduler() Scheduler {
-	// need to implement
-	return Scheduler{}
+	return Scheduler{
+		heap: NewHeap(),
+	}
 }
 
 func (s *Scheduler) AddTask(task Task) {
-	// need to implement
+	s.heap.AddTask(task)
 }
 
 func (s *Scheduler) ChangeTaskPriority(taskID int, newPriority int) {
-	// need to implement
+	s.heap.ChangeTaskPriority(taskID, newPriority)
 }
 
 func (s *Scheduler) GetTask() Task {
-	// need to implement
-	return Task{}
+	return s.heap.GetTask()
+}
+
+type Heap struct {
+	tasks   []Task
+	taskIDs map[int]int
+}
+
+func NewHeap() Heap {
+	return Heap{
+		tasks:   make([]Task, 0),
+		taskIDs: make(map[int]int),
+	}
+}
+
+func (s *Heap) AddTask(task Task) {
+	s.tasks = append(s.tasks, task)
+	s.taskIDs[task.Identifier] = len(s.tasks)
+	s.shiftUp(len(s.tasks) - 1)
+
+}
+
+func (s *Heap) GetTask() Task {
+	if len(s.tasks) == 0 {
+		return Task{}
+	}
+
+	t := s.tasks[0]
+	s.tasks = s.tasks[1:]
+	s.shiftDown(0)
+	return t
+}
+
+func (s *Heap) ChangeTaskPriority(taskID int, newPriority int) {
+	index := s.findTask(taskID)
+	if index == -1 {
+		return
+	}
+	oldPriority := s.tasks[index].Priority
+	s.tasks[index].Priority = newPriority
+	s.shiftDown(index)
+
+	if newPriority > oldPriority {
+		s.shiftUp(index)
+	}
+
+}
+
+func (s *Heap) shiftUp(index int) {
+	if index >= len(s.tasks) || index < 0 {
+		return
+	}
+
+	for index > 0 {
+		parentIndex := s.parent(index)
+		if parentIndex == -1 {
+			break
+		}
+
+		if s.tasks[index].Priority > s.tasks[parentIndex].Priority {
+			s.tasks[index], s.tasks[parentIndex] = s.tasks[parentIndex], s.tasks[index]
+			index = parentIndex
+		} else {
+			break
+		}
+	}
+}
+
+func (s *Heap) shiftDown(index int) {
+	if index >= len(s.tasks) || index < 0 {
+		return
+	}
+	for index < len(s.tasks) {
+		largest := index
+		leftIndex := s.left(index)
+		rightIndex := s.right(index)
+
+		if leftIndex != -1 && s.tasks[leftIndex].Priority > s.tasks[largest].Priority {
+			largest = leftIndex
+		}
+
+		if rightIndex != -1 && s.tasks[rightIndex].Priority > s.tasks[largest].Priority {
+			largest = rightIndex
+		}
+		if largest == index {
+			break
+		}
+
+		s.tasks[index], s.tasks[largest] = s.tasks[largest], s.tasks[index]
+		index = largest
+
+	}
+
+}
+
+func (s *Heap) findTask(taskID int) int {
+	if _, ok := s.taskIDs[taskID]; ok {
+		return s.taskIDs[taskID]
+	}
+	return -1
+}
+
+func (s *Heap) left(index int) int {
+	if index*2+1 >= len(s.tasks) {
+		return -1
+	}
+	return index*2 + 1
+}
+
+func (s *Heap) right(index int) int {
+	if index*2+2 >= len(s.tasks) {
+		return -1
+	}
+	return index*2 + 2
+}
+
+func (s *Heap) parent(id int) int {
+	if (id-1)/2 < 0 {
+		return -1
+	}
+	return (id - 1) / 2
 }
 
 func TestTrace(t *testing.T) {
@@ -56,7 +176,7 @@ func TestTrace(t *testing.T) {
 	scheduler.ChangeTaskPriority(1, 100)
 
 	task = scheduler.GetTask()
-	assert.Equal(t, task1, task)
+	assert.Equal(t, Task{Identifier: 1, Priority: 100}, task)
 
 	task = scheduler.GetTask()
 	assert.Equal(t, task3, task)
